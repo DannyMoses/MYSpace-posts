@@ -28,7 +28,7 @@ def add_item():
                 "likes": '0'
                 },
             "retweeted": '0',
-            "timestamp": str(time.time()),
+            "timestamp": time.time(),
             "id" : uid
             }
 
@@ -41,15 +41,15 @@ def add_item():
 
     return { "status" : "OK", "id" : uid }, 200
 
-@app.route("/item/<id>", methods=["GET"])
-def get_item(id):
+@app.route("/item", methods=["GET"])
+def get_item():
     item_collection = mongo.db.items
-    data = request.json
+    id = request.args.get('id')
     print(id)
 
     ret = item_collection.find_one({"id" : id})
     if not ret: 
-        return { "status" : "ERROR", "error": "Item not found" }, 200 #400
+        return { "status" : "error", "error": "Item not found" }, 200 #400
 
     del ret['_id']
     return { "status": "OK", "item": ret }, 200
@@ -58,10 +58,18 @@ def get_item(id):
 def search():
     data = request.json
     item_collection = mongo.db.items
-    ret = item_collection.find({ "timestamp" : { '$lt' : data["timestamp"] } }).limit(data['limit'])
+    limit = 25
+    if "limit" in data:
+        limit = data["limit"]
+    if limit > 100:
+        limit = 100
+    timestamp = time.time()
+    if "timestamp" in data:
+        timestamp = data["timestamp"]
+    ret = item_collection.find({ "timestamp" : { '$lt' : timestamp } }).limit(limit)
 
     if not ret:
-        return { "status" : "ERROR", "error": "No items found" }, 200 #400
+        return { "status" : "error", "error": "No items found" }, 200 #400
 
     results = []
     for doc in ret:
