@@ -1,0 +1,5 @@
+flask
+flask_pymongo
+itsdangerous
+bcrypt
+gunicorn
