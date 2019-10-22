@@ -12,48 +12,64 @@ mongo = PyMongo(app)
 
 @app.route("/additem", methods=["POST"])
 def add_item():
-	print(80*'=')
-	print("/ADDITEM()")
-	print("USER:", session["user"])
-	
-	x = uuid.uuid1()
-	uid = str(x)
-	data = request.json
-	post = { "username" : data["user"],
-		"content" : data["content"],
-		"type": data["childType"],
-		"property" : {
-			"likes" : '0'
-		},
-		"retweeted" : '0',
-		"timestamp" : str(time.time()),
-		"id" : uid
-		}
+    print(80*'=')
+    print("/ADDITEM()")
 
-	item_collection = mongo.db.items
-	item_collection.insert_one(post)
+    data = request.json
+    print("USER:", data["user"])
 
-	return { "status" : "OK", "id" : uid }, 200
+    x = uuid.uuid1()
+    uid = str(x)
+
+    post = {"username": data["user"],
+            "content": data["content"],
+            "type": data["childType"],
+            "property": {
+                "likes": '0'
+                },
+            "retweeted": '0',
+            "timestamp": str(time.time()),
+            "id" : uid
+            }
+
+    item_collection = mongo.db.items
+    try:
+        item_collection.insert_one(post)
+    except Exception as e:
+        print(e)
+        return { "status" : "error", "error" : "Contact a developer" }, 200
+
+    return { "status" : "OK", "id" : uid }, 200
 
 @app.route("/item/<id>", methods=["GET"])
 def get_item(id):
-	item_collection = mongo.db.items
+    item_collection = mongo.db.items
+    data = request.json
+    print(id)
 
-	data = request.json
+    ret = item_collection.find_one({"id" : id})
+    if not ret: 
+        return { "status" : "ERROR", "error": "Item not found" }, 200 #400
 
-	ret = item_collection.find_one({"id" : data["id"]})
-
-	if ret is None: 
-		return { "status" : "ERROR" }, 200 #400
-	
-	return ret, 200
+    del ret['_id']
+    return { "status": "OK", "item": ret }, 200
 
 @app.route("/search", methods=["POST"])
 def search():
-	data = request.json
-	item_collection = mongo.db.items
-	ret = item_collection.find({ "timestamp" : { '$lt' : data["timestamp"] } }).limit(data['limit'])
+    data = request.json
+    item_collection = mongo.db.items
+    ret = item_collection.find({ "timestamp" : { '$lt' : data["timestamp"] } }).limit(data['limit'])
 
-	return { "status" : "OK", items: ret }, 200
+    if not ret:
+        return { "status" : "ERROR", "error": "No items found" }, 200 #400
 
+    results = []
+    for doc in ret:
+        del doc['_id']
+        results.append(doc)
+        print(doc)
+        #print(ret[i])
+        #results.append(ret[i])
+
+    return { "status" : "OK", "items": results }, 200
 
