@@ -19,7 +19,7 @@ def add_item():
 	x = uuid.uuid1()
 	uid = str(x)
 	data = request.json
-	post = { "username" : session["user"],
+	post = { "username" : data["user"],
 		"content" : data["content"],
 		"type": data["childType"],
 		"property" : {
