@@ -59,6 +59,18 @@ def get_item():
 	del ret['_id']
 	return { "status": "OK", "item": ret }, 200
 
+@app.route("/item", methods=["DELETE"])
+def delete_item():
+	item_collection = mongo.db.items
+	id = request.args.get('id')
+	print(id)
+
+	ret = item_collection.delete_one({"id" : id})
+	if ret.deleted_count == 0:
+		return { "status" : "error", "error": "Item not found" }, 404
+
+	return { "status": "OK"}, 200
+
 @app.route("/search", methods=["POST"])
 def search():
 	data = request.json
