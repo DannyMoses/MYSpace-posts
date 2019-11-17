@@ -8,7 +8,12 @@ import logging, time, json, uuid
 from config import config
 
 app = Flask(__name__)
-app.config['MONGO_URI'] = "mongodb://localhost:27017/posts"
+app.config['MONGO_URI'] = "mongodb://{}:{}@{}/{}".format(
+				config['mongo_usr'],
+				config['mongo_pwd'],
+				config['mongo_ip'],
+				config['mongo_db']
+			)
 
 mongo = PyMongo(app)
 

@@ -4,10 +4,12 @@ After=network.target
 
 [Service]
 User=ubuntu
-Group=nginx
-WorkingDirectory=/home/ubuntu/MYSpace-posts
-Environment="/home/ubuntu/.local/bin"
-ExecStart=/home/ubuntu/.local/bin/gunicorn -c config/gunicorn.conf wsgi:app
+Group=root
+WorkingDirectory=/home/ubuntu/repo
+Environment="/home/ubuntu/venvs/posts-service/bin"
+ExecStart=/home/ubuntu/venvs/posts-service/bin/gunicorn -c config/gunicorn.conf wsgi:app
+ExecReload = /bin/kill -s HUP $MAINPID
+ExecStop = /bin/kill -s TERM $MAINPID
 
 [Install]
 WantedBy=multi-user.target

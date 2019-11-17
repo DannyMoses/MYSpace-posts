@@ -1,5 +1,6 @@
 flask
 flask_pymongo
 itsdangerous
+requests
 bcrypt
 gunicorn
