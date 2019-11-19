@@ -49,16 +49,26 @@ def add_item():
 	x = uuid.uuid1()
 	uid = str(x)
 
-	post = {"username": data["user"],
-			"content": data["content"],
-			"type": data["childType"],
+	if 'childType' not in data:
+		data['childType'] = None
+	if 'parent' not in data:
+		data['parent'] = None
+	if 'media' not in data:
+		data['media'] = []
+
+	post = {
+			"id" : uid,
+			"username": data['user'],
 			"property": {
 				"likes": '0'
-				},
+			},
 			"retweeted": '0',
+			"content": data['content'],
 			"timestamp": time.time(),
-			"id" : uid
-			}
+			"childType": data['childType'],
+			"parent": data['parent'],
+			"media": data['media'],
+		}
 
 	item_collection = mongo.db.items
 	try:
@@ -67,13 +77,21 @@ def add_item():
 		print(e)
 		return { "status" : "error", "error" : "Contact a developer" }, 200
 
+	# Retweet
+	if data['childType'] == "retweet":
+		item_collection.updateOne({'id': data['parent']}, {'$inc': {'retweeted': 1}})
+
 	del post['_id']
 	del post['id']
-	del post['type']
 	del post['property']
 	del post['retweeted']
-	app.logger.debug(post)
+	post['isReply'] = True if post['childType'] == "reply" else False
+	del post['childType']
+	post['interest'] = 0
+	post['hasMedia'] = True if data['media'] else False
+	del post['media']
 
+	app.logger.debug(post)
 	r = requests.put(url=('http://' + search_route + '/posts/_doc/' + uid), json=post)
 
 	r_json = r.json()
@@ -126,21 +144,28 @@ def search():
 	
 	app.logger.debug(data)
 
+	# Limit defaults
 	limit = 25
 	if "limit" in data:
 		limit = data["limit"]
 	if limit > 100:
 		limit = 100
 
-	timestamp = time.time()
-	if "timestamp" in data:
-		timestamp = data["timestamp"]
-
+	# Setup search query
 	search = []
 	filter = []
 
+	# Time defaults
+	timestamp = time.time()
+	if "timestamp" in data:
+		timestamp = data["timestamp"]
+	filter.append({ "range": {"timestamp": {"lte": timestamp}} })
+
+	# String query
 	if "q" in data and data['q']:
 		search.append({ "match": {"content": data['q']} })
+
+	# By username or followed users
 	if 'username' in data:
 		filter.append({ "term": {"username": data['username']} })
 	elif 'user' in data:
@@ -148,7 +173,17 @@ def search():
 				json={'username': data['user']})
 		r_json = r.json()
 		filter.append({ "terms": {"username": r_json['users']} })
-	filter.append({ "range": {"timestamp": {"lte": timestamp}} })
+
+	# Exclude replies
+	if 'reply' in data and not data['reply']:
+		filter.append({ "term": {"isReply": False} })
+	# Children of parent only
+	elif 'parent' in data:
+		filter.append({ "term": {"parent": data['parent']} })
+
+	# hasMedia
+	if 'media' in data and data['media']:
+		filter.append({ "term": {"hasMedia": True}})
 
 	query = {
 		"query": {
@@ -156,11 +191,16 @@ def search():
 				"filter": filter
 			}
 		},
+		"sort": [{"interest": "desc"}],
 		"size": limit
 	}
 
 	if search:
 		query['query']['bool']['must'] = search
+
+	# Rank
+	if 'sort' in data and data['sort'] == "time":
+		query['sort'] = [{"time": "desc"}]
 
 	app.logger.info(query)
 
