@@ -41,14 +41,16 @@ if __name__ != '__main__':
 
 @app.route("/reset_posts", methods=["POST"])
 def reset():
+	app.logger.warning("/reset_posts called")
+
 	query = {
 		"query": {
 			"match_all" : {}
 		}
 	}
-
-	mongo.db.items.drop()
 	requests.post(url=('http://' + search_route + '/posts/_delete_by_query'), json=query)
+	mongo.db.items.drop()
+	media_store.objects.all().delete()
 	return { "status": "OK" }, 200
 
 @app.route("/additem", methods=["POST"])
@@ -285,9 +287,11 @@ def search():
 	#fields = ['username', 'timestamp', 'interest']
 
 	# Time defaults
-	timestamp = int(round(time.time()*1000))
+	timestamp = time.time()
+	#timestamp = int(round(time.time()*1000))
 	if "timestamp" in data:
 		timestamp = data["timestamp"]
+	timestamp = int(round(timestamp*1000))
 	filter.append({ "range": {"timestamp": {"lte": timestamp}} })
 
 	# String query
@@ -338,6 +342,7 @@ def search():
 
 	r = requests.get(url=('http://' + search_route + '/posts/_search'), json=query)
 	r_json = r.json()
+	app.logger.debug(r_json)
 	#print(r_json)
 	#print(r_json['hits'])
 	app.logger.debug(r_json['hits']['hits'])
