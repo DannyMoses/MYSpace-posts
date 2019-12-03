@@ -13,10 +13,13 @@ ACCESS_LOG = "/var/log/gunicorn/access.log"
 #ACCESS_LOG.touch(exist_ok=True)
 
 bind = "127.0.0.1:5000"
-workers = 15
+backlog = 2048
 
-capture_output = True	# Send stdout/stderr print to errorlog
-loglevel = "info"
+workers = 4 
+worker_class = "gevent"
+
+capture_output = False	# Send stdout/stderr print to errorlog
+loglevel = "warning"
 errorlog = ERROR_LOG
 accesslog = ACCESS_LOG
 

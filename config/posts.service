@@ -6,7 +6,7 @@ After=network.target
 User=ubuntu
 Group=root
 WorkingDirectory=/home/ubuntu/repo
-ExecStart=/home/ubuntu/venvs/posts-service/bin/gunicorn -c config/gunicorn.conf wsgi:app
+ExecStart=/home/ubuntu/venvs/posts-service/bin/gunicorn -c config/gunicorn.conf.py wsgi:app
 ExecReload = /bin/kill -s HUP $MAINPID
 ExecStop = /bin/kill -s TERM $MAINPID
 
